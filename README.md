@@ -18,9 +18,9 @@ ___
 # __To ```run``` application you need:__
 
 * open folder with project in the terminal ```cd 'your project folder'```
-* enter ```gradle clean build```
 * checkout to the ```feature-2-migrate-to-hibernate``` branch
 * get the database up in Docker by command ```docker compose up -d --build```
+* enter ```gradle clean build```
 * run application from your IDE using Tomcat
 
 ___
