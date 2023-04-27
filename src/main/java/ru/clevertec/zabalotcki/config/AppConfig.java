@@ -23,7 +23,7 @@ import java.util.Objects;
 public class AppConfig {
 
     @Autowired
-    DataSourceConfig config;
+    private DataSourceConfig config;
 
     @Bean
     public static PropertySourcesPlaceholderConfigurer propertyConfigInDev() {
@@ -52,36 +52,6 @@ public class AppConfig {
         return HibernateUtils.sessionFactory();
     }
 
-//    @Bean
-//    public GiftCertificateRepositoryImpl certificateRepository() {
-//        return new GiftCertificateRepositoryImpl(sessionFactory());
-//    }
-//
-//    @Bean
-//    public TagRepositoryImpl tagRepository() {
-//        return new TagRepositoryImpl(sessionFactory());
-//    }
-//
-//    @Bean
-//    public GiftCertificateMapper certificateMapper() {
-//        return new GiftCertificateMapper();
-//    }
-//
-//    @Bean
-//    public TagMapper tagMapper() {
-//        return new TagMapper();
-//    }
-//
-//    @Bean
-//    public GiftCertificateServiceImpl certificateService(GiftCertificateRepositoryImpl giftCertificateRepository, GiftCertificateMapper giftCertificateMapper) {
-//        return new GiftCertificateServiceImpl(giftCertificateRepository, giftCertificateMapper);
-//    }
-//
-//    @Bean
-//    public TagServiceImpl tagService(TagRepositoryImpl tagRepository, TagMapper mapper) {
-//        return new TagServiceImpl(tagRepository, mapper);
-//    }
-
     @Bean
     public MappingJackson2HttpMessageConverter jacksonConverter() {
         MappingJackson2HttpMessageConverter converter = new MappingJackson2HttpMessageConverter();
@@ -90,14 +60,4 @@ public class AppConfig {
         converter.setObjectMapper(mapper);
         return converter;
     }
-
-//    @Bean
-//    public GiftCertificateController certificateController(GiftCertificateServiceImpl certificateService, MappingJackson2HttpMessageConverter converter) {
-//        return new GiftCertificateController(certificateService, converter);
-//    }
-//
-//    @Bean
-//    public TagController tagController(TagServiceImpl tagService, MappingJackson2HttpMessageConverter converter) {
-//        return new TagController(tagService, converter);
-//    }
 }
