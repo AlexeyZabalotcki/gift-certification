@@ -1,6 +1,12 @@
 # __About:__
-This project implemented via `Spring and JdbcTemplate`. 
+This project implemented via `Spring and Hibernate`.
 
+Database crates via Flyway.
+
+Testcontainers are used to test the repository layer
+
+Mockito are used to test the service layer
+ 
 ___
 # __Project setup steps__
 ___
@@ -13,16 +19,13 @@ ___
 
 * open folder with project in the terminal ```cd 'your project folder'```
 * enter ```gradle clean build```
-* checkout to the ```feature-1-task-on-spring-and-jdbctemplate``` branch
+* checkout to the ```feature-2-migrate-to-hibernate``` branch
 * get the database up in Docker by command ```docker compose up -d --build```
 * run application from your IDE using Tomcat
 
 ___
 # __Steps for work with application:__
 
-__Work with database migration:__
-* Migration is done automatically. It can have an effect on add method. 
-___
 __Work with certificates:__
 * For getting all certificates from database you should go to ```GET.../gifts/>```
 * For add certificate to the database you should go to ```POST.../gifts/add``` 
@@ -39,7 +42,7 @@ and pass the following parameters in the body of the request:
        ]
    } 
   ```
-  `*Before adding new certificate Clean up the database`
+ 
 * For update information about certificate you should go to ```PUT.../gifts/update```
 and pass the following parameters in the body of the request:
   ```
@@ -80,7 +83,6 @@ and pass the following parameters in the body of the request:
        "name":"Somthing"
    } 
   ```
-  `**Before adding new tag Clean up the database`
 * For update information about tags you should go to ```POST.../tags/update```
 and pass the following parameters in the body of the request:
    ```
