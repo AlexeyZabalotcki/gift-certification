@@ -1,168 +1,164 @@
 package ru.clevertec.zabalotcki.dao;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.ResultSetExtractor;
-import org.springframework.jdbc.core.RowMapper;
-import org.springframework.jdbc.support.GeneratedKeyHolder;
-import org.springframework.jdbc.support.KeyHolder;
+import org.hibernate.Session;
+import org.hibernate.SessionFactory;
 import org.springframework.stereotype.Repository;
-import ru.clevertec.zabalotcki.excepton.EntityNotFoundException;
+import org.springframework.transaction.annotation.Transactional;
 import ru.clevertec.zabalotcki.model.GiftCertificate;
 import ru.clevertec.zabalotcki.model.Tag;
 
-import java.sql.PreparedStatement;
-import java.sql.Timestamp;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
 
 @Repository
 @RequiredArgsConstructor
 public class GiftCertificateRepositoryImpl implements GiftCertificateRepository {
 
-    private final JdbcTemplate jdbcTemplate;
-    private final TagRepositoryImpl tagRepository;
+    private final SessionFactory sessionFactory;
 
     @Override
     public List<GiftCertificate> findAll() {
-        String sql = "SELECT gc.id, gc.name, description, price, duration, create_date, last_update_date, t.id as tag_id, t.name as tag_name " +
-                "FROM gift_certificate as gc " +
-                "LEFT JOIN gift_certificate_tag gct ON id = gift_certificate_id LEFT OUTER JOIN tag t on tag_id = t.id";
-
-        ResultSetExtractor<List<GiftCertificate>> rse = GiftCertificateRowMapper::extractData;
-        return jdbcTemplate.query(sql, rse);
-    }
-
-    @Override
-    public Optional<GiftCertificate> findById(Long id) {
-        String sql = "SELECT gc.id, gc.name, description, price, duration, create_date, last_update_date, t.id as tag_id, t.name as tag_name " +
-                "FROM gift_certificate as gc " +
-                "LEFT JOIN gift_certificate_tag gct ON id = gift_certificate_id " +
-                "LEFT OUTER JOIN tag t on tag_id = t.id " +
-                "WHERE gc.id = ?";
-
-        RowMapper<GiftCertificate> mapper = GiftCertificateRowMapper::mapRow;
-
-        List<GiftCertificate> result = jdbcTemplate.query(sql, mapper, id);
-        return result.isEmpty() ? Optional.empty() : Optional.of(result.get(0));
-    }
-
-    @Override
-    public void save(GiftCertificate giftCertificate) {
-        String sql = "INSERT INTO gift_certificate (name, description, price, duration, create_date, last_update_date) VALUES (?, ?, ?, ?, ?, ?)";
-        KeyHolder keyHolder = new GeneratedKeyHolder();
-        jdbcTemplate.update(connection -> {
-            PreparedStatement ps = connection.prepareStatement(sql, new String[]{"id"});
-            ps.setString(1, giftCertificate.getName());
-            ps.setString(2, giftCertificate.getDescription());
-            ps.setBigDecimal(3, giftCertificate.getPrice());
-            ps.setInt(4, giftCertificate.getDuration());
-            ps.setTimestamp(5, Timestamp.valueOf(LocalDateTime.now()));
-            ps.setTimestamp(6, Timestamp.valueOf(LocalDateTime.now()));
-            return ps;
-        }, keyHolder);
-
-        long id = keyHolder.getKey().longValue();
-        giftCertificate.setId(id);
-
-        List<Tag> tags = new ArrayList<>(giftCertificate.getTags());
-        workWithTagsId(tags);
-
-        insertIntoIntermediateTable(giftCertificate, id);
-    }
-
-    @Override
-    public void update(GiftCertificate giftCertificate) {
-        String sql = "UPDATE gift_certificate SET name = ?, description = ?, price = ?, duration = ?, last_update_date = ? WHERE id = ?";
-        int rowsUpdated = jdbcTemplate.update(sql,
-                giftCertificate.getName(),
-                giftCertificate.getDescription(),
-                giftCertificate.getPrice(),
-                giftCertificate.getDuration(),
-                Timestamp.valueOf(LocalDateTime.now()),
-                giftCertificate.getId());
-        if (rowsUpdated == 0) {
-            throw new EntityNotFoundException("Gift certificate with id " + giftCertificate.getId() + " not found");
+        try (Session session = sessionFactory.openSession()) {
+            List<GiftCertificate> resultList = session.createQuery("SELECT g FROM GiftCertificate g",
+                    GiftCertificate.class).getResultList();
+            return resultList;
         }
-        Long id = deleteFromIntermediateTable(giftCertificate);
-
-        updateTags(giftCertificate, id);
     }
 
     @Override
+    @Transactional
+    public GiftCertificate findById(Long id) {
+        try (Session session = sessionFactory.getCurrentSession()) {
+            session.getTransaction().begin();
+            GiftCertificate byId = session.createQuery("select g from GiftCertificate g where g.id =:id",
+                    GiftCertificate.class)
+                    .setParameter("id", id)
+                    .getSingleResult();
+            session.getTransaction().commit();
+            return byId;
+        }
+    }
+
+    @Override
+    @Transactional
+    public GiftCertificate save(GiftCertificate giftCertificate) {
+        try (Session session = sessionFactory.getCurrentSession()) {
+            session.getTransaction().begin();
+            giftCertificate.setCreateDate(LocalDateTime.now());
+            giftCertificate.setLastUpdateDate(LocalDateTime.now());
+            checkTags(giftCertificate, session);
+            session.save(giftCertificate);
+            session.getTransaction().commit();
+            return giftCertificate;
+        }
+    }
+
+    @Override
+    @Transactional
+    public GiftCertificate update(GiftCertificate giftCertificate) {
+        try (Session session = sessionFactory.getCurrentSession()) {
+            session.getTransaction().begin();
+            GiftCertificate existingGiftCertificate = session.get(GiftCertificate.class, giftCertificate.getId());
+
+            updateFields(giftCertificate, existingGiftCertificate, session);
+
+            session.update(existingGiftCertificate);
+
+            session.getTransaction().commit();
+            return existingGiftCertificate;
+        }
+    }
+
+    private void updateFields(GiftCertificate giftCertificate, GiftCertificate existingGiftCertificate, Session session) {
+        if (giftCertificate.getName() != null) {
+            existingGiftCertificate.setName(giftCertificate.getName());
+        }
+        if (giftCertificate.getDescription() != null) {
+            existingGiftCertificate.setDescription(giftCertificate.getDescription());
+        }
+        if (giftCertificate.getDuration() != null) {
+            existingGiftCertificate.setDuration(giftCertificate.getDuration());
+        }
+        if (giftCertificate.getPrice() != null) {
+            existingGiftCertificate.setPrice(giftCertificate.getPrice());
+        }
+        if (giftCertificate.getTags() != null) {
+            rewriteTags(giftCertificate, session, existingGiftCertificate);
+        }
+        existingGiftCertificate.setLastUpdateDate(LocalDateTime.now());
+    }
+
+    @Override
+    @Transactional
     public void deleteById(Long id) {
-        String sql = "DELETE FROM gift_certificate WHERE id = ?";
-        int rowsDeleted = jdbcTemplate.update(sql, id);
-        if (rowsDeleted == 0) {
-            throw new EntityNotFoundException("Gift certificate with id " + id + " not found");
+        try (Session session = sessionFactory.getCurrentSession()) {
+            session.getTransaction().begin();
+            session.createQuery("DELETE FROM GiftCertificate g WHERE g.id=:id")
+                    .setParameter("id", id).executeUpdate();
+            session.getTransaction().commit();
         }
     }
 
     @Override
-    public List<GiftCertificate> searchByNameOrDescription(String query) {
-        String pattern = "%" + query + "%";
-        String request = "SELECT gc.id, gc.name, description, price, duration, create_date, last_update_date, t.id as tag_id, t.name as tag_name " +
-                "FROM gift_certificate as gc " +
-                "LEFT JOIN gift_certificate_tag gct ON id = gift_certificate_id " +
-                "LEFT OUTER JOIN tag t on tag_id = t.id  " +
-                "WHERE gc.name LIKE ? OR t.name LIKE ? OR description LIKE ? " +
-                "GROUP BY gc.id, gc.name, gc.description, gc.price, gc.duration, gc.create_date, gc.last_update_date, t.id " +
-                "ORDER BY gc.id ASC";
-
-        ResultSetExtractor<List<GiftCertificate>> rse = GiftCertificateRowMapper::extractData;
-        return jdbcTemplate.query(request, rse, pattern, pattern, pattern);
-    }
-
-    @Override
-    public List<GiftCertificate> getAllSorted(String sortBy) {
-        String request = "SELECT gc.id, gc.name, description, price, duration, create_date, last_update_date, t.id as tag_id, t.name as tag_name " +
-                "FROM gift_certificate as gc " +
-                "LEFT JOIN gift_certificate_tag gct ON id = gift_certificate_id " +
-                "LEFT OUTER JOIN tag t on tag_id = t.id " +
-                "GROUP BY gc.id, gc.name, gc.description, gc.price, gc.duration, gc.create_date, gc.last_update_date, t.id " +
-                "ORDER BY ?";
-
-        ResultSetExtractor<List<GiftCertificate>> rse = GiftCertificateRowMapper::extractData;
-        List<GiftCertificate> list = new ArrayList<>(Objects.requireNonNull(jdbcTemplate.query(request, rse, sortBy)));
-        return list;
-    }
-
-    private void insertIntoIntermediateTable(GiftCertificate giftCertificate, long id) {
-        for (Tag tag : giftCertificate.getTags()) {
-            String tagSql = "INSERT INTO gift_certificate_tag(gift_certificate_id, tag_id) VALUES (?, ?)";
-            jdbcTemplate.update(tagSql, id, tag.getId());
+    public List<GiftCertificate> searchByNameOrDescriptionOrTags(String query) {
+        try (Session session = sessionFactory.getCurrentSession()) {
+            session.getTransaction().begin();
+            List result = session.createQuery("SELECT DISTINCT  g FROM GiftCertificate g INNER JOIN g.tags t " +
+                    "WHERE g.name LIKE :query " +
+                    "OR t.name LIKE :query " +
+                    "OR g.description LIKE :query ")
+                    .setParameter("query", "%" + query + "%")
+                    .getResultList();
+            session.getTransaction().commit();
+            return result;
         }
     }
 
-    private void workWithTagsId(List<Tag> giftCertificate) {
-        for (Tag tag : giftCertificate) {
-            String selectSql = "SELECT id FROM tag WHERE name = ?";
-            List<Long> tagIds = jdbcTemplate.queryForList(selectSql, Long.class, tag.getName());
-            if (!tagIds.isEmpty()) {
-                tag.setId(tagIds.get(0));
+    public void deleteAll() {
+        try (Session session = sessionFactory.getCurrentSession()) {
+            session.getTransaction().begin();
+            session.createQuery("DELETE FROM GiftCertificate")
+                    .executeUpdate();
+            session.getTransaction().commit();
+        }
+    }
+
+    private void checkTags(GiftCertificate giftCertificate, Session session) {
+        List<Tag> tags = giftCertificate.getTags();
+        for (int i = 0; i < tags.size(); i++) {
+            Tag tag = tags.get(i);
+            Tag existingTag = findTag(session, tag);
+            if (existingTag != null) {
+                tags.set(i, existingTag);
             } else {
-                tagRepository.save(tag);
-                tagIds.add(tag.getId());
+                session.save(tag);
             }
         }
     }
 
-    private Long deleteFromIntermediateTable(GiftCertificate giftCertificate) {
-        Long id = giftCertificate.getId();
-        jdbcTemplate.update("DELETE FROM gift_certificate_tag WHERE gift_certificate_id = ?", id);
-        return id;
+    private Tag findTag(Session session, Tag tag) {
+        return session.createQuery("SELECT t FROM Tag t WHERE name = :name", Tag.class)
+                .setParameter("name", tag.getName())
+                .uniqueResult();
     }
 
-    private void updateTags(GiftCertificate giftCertificate, Long id) {
-        List<Tag> tags = new ArrayList<>();
-        for (Tag tag : giftCertificate.getTags()) {
-            tags.add(tag);
-            workWithTagsId(tags);
-            String tagSql = "INSERT INTO gift_certificate_tag(gift_certificate_id, tag_id) VALUES (?, ?)";
-            jdbcTemplate.update(tagSql, id, tag.getId());
+    private void rewriteTags(GiftCertificate giftCertificate, Session session, GiftCertificate existingGiftCertificate) {
+        List<Tag> existingTags = existingGiftCertificate.getTags();
+        List<Tag> newTags = giftCertificate.getTags();
+
+        existingTags.retainAll(newTags);
+
+        for (Tag newTag : newTags) {
+            if (!existingTags.contains(newTag)) {
+                Tag existingTag = findTag(session, newTag);
+                if (existingTag != null) {
+                    existingTags.add(existingTag);
+                } else {
+                    session.save(newTag);
+                    existingTags.add(newTag);
+                }
+            }
         }
     }
 }

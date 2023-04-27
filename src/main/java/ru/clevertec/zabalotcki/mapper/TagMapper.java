@@ -1,4 +1,4 @@
-package ru.clevertec.zabalotcki.service;
+package ru.clevertec.zabalotcki.mapper;
 
 import org.springframework.stereotype.Component;
 import ru.clevertec.zabalotcki.dto.TagDto;

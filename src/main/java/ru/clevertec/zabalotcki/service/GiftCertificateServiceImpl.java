@@ -1,11 +1,12 @@
 package ru.clevertec.zabalotcki.service;
 
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.clevertec.zabalotcki.dao.GiftCertificateRepositoryImpl;
 import ru.clevertec.zabalotcki.dto.GiftCertificateDto;
-import ru.clevertec.zabalotcki.excepton.EntityNotFoundException;
+import ru.clevertec.zabalotcki.mapper.GiftCertificateMapper;
 import ru.clevertec.zabalotcki.model.GiftCertificate;
 
 import java.lang.reflect.Field;
@@ -23,17 +24,17 @@ public class GiftCertificateServiceImpl implements GiftCertificateService {
     private final GiftCertificateMapper giftCertificateMapper;
 
     @Override
-    public GiftCertificateDto save(GiftCertificateDto giftCertificateDTO) {
-        GiftCertificate giftCertificate = giftCertificateMapper.toEntity(giftCertificateDTO);
-        giftCertificateRepository.save(giftCertificate);
-        return giftCertificateMapper.toDto(giftCertificate);
+    public GiftCertificateDto save(GiftCertificateDto giftCertificateDto) {
+        GiftCertificate giftCertificate = giftCertificateMapper.toEntity(giftCertificateDto);
+        GiftCertificate save = giftCertificateRepository.save(giftCertificate);
+        return giftCertificateMapper.toDto(save);
     }
 
     @Override
-    public GiftCertificateDto update(GiftCertificateDto giftCertificateDTO) {
-        GiftCertificate giftCertificate = giftCertificateMapper.toEntity(giftCertificateDTO);
-        giftCertificateRepository.update(giftCertificate);
-        return giftCertificateMapper.toDto(giftCertificate);
+    public GiftCertificateDto update(GiftCertificateDto giftCertificateDto) {
+        GiftCertificate giftCertificate = giftCertificateMapper.toEntity(giftCertificateDto);
+        GiftCertificate update = giftCertificateRepository.update(giftCertificate);
+        return giftCertificateMapper.toDto(update);
     }
 
     @Override
@@ -43,25 +44,25 @@ public class GiftCertificateServiceImpl implements GiftCertificateService {
 
     @Override
     public GiftCertificateDto findById(Long id) {
-        GiftCertificate giftCertificate = giftCertificateRepository.findById(id).orElseThrow(() ->
-                new EntityNotFoundException("Gift Certificate not found with id" + id));
+        GiftCertificate giftCertificate = giftCertificateRepository.findById(id);
         return giftCertificateMapper.toDto(giftCertificate);
     }
 
     @Override
     public List<GiftCertificateDto> findAll() {
-        return giftCertificateMapper.toDtoList(giftCertificateRepository.findAll());
+        List<GiftCertificate> all = giftCertificateRepository.findAll();
+        return giftCertificateMapper.toDtoList(all);
     }
 
     @Override
     public List<GiftCertificateDto> searchByNameOrDescription(String query) {
-        List<GiftCertificate> giftCertificates = giftCertificateRepository.searchByNameOrDescription(query);
+        List<GiftCertificate> giftCertificates = giftCertificateRepository.searchByNameOrDescriptionOrTags(query);
         return giftCertificateMapper.toDtoList(giftCertificates);
     }
 
     @Override
     public List<GiftCertificateDto> getAllSorted(String sortBy) {
-        List<GiftCertificate> giftCertificates = giftCertificateRepository.getAllSorted(sortBy)
+        List<GiftCertificate> giftCertificates = giftCertificateRepository.findAll()
                 .stream().sorted(Comparator.comparing(giftCertificate -> {
                     Field field = null;
                     try {

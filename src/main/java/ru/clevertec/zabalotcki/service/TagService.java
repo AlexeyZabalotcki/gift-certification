@@ -5,6 +5,7 @@ import ru.clevertec.zabalotcki.dto.TagDto;
 import java.util.List;
 
 public interface TagService {
+
     TagDto save(TagDto tagDto);
 
     TagDto update(TagDto tagDto);

@@ -1,4 +1,4 @@
-package ru.clevertec.zabalotcki.service;
+package ru.clevertec.zabalotcki.mapper;
 
 import org.springframework.stereotype.Component;
 import ru.clevertec.zabalotcki.dto.GiftCertificateDto;
@@ -30,21 +30,22 @@ public class GiftCertificateMapper {
     }
 
     public GiftCertificate toEntity(GiftCertificateDto dto) {
-        return GiftCertificate.builder()
-                .id(dto.getId())
-                .name(dto.getName())
-                .description(dto.getDescription())
-                .price(dto.getPrice())
-                .duration(dto.getDuration())
-                .createDate(dto.getCreateDate())
-                .lastUpdateDate(dto.getLastUpdateDate())
-                .tags(dto.getTags().stream().map(tagName -> {
-                    Tag tag = new Tag();
-                    tag.setName(tagName);
-                    return tag;
-                }).collect(Collectors.toList()))
-                .build();
-    }
+        List<Tag> tags = dto.getTags() != null ? dto.getTags().stream().map(tagName -> {
+            Tag tag = new Tag();
+            tag.setName(tagName);
+            return tag;
+        }).collect(Collectors.toList()) : null;
+            return GiftCertificate.builder()
+                    .id(dto.getId())
+                    .name(dto.getName())
+                    .description(dto.getDescription())
+                    .price(dto.getPrice())
+                    .duration(dto.getDuration())
+                    .createDate(dto.getCreateDate())
+                    .lastUpdateDate(dto.getLastUpdateDate())
+                    .tags(tags)
+                    .build();
+        }
 
     public List<GiftCertificateDto> toDtoList(List<GiftCertificate> giftCertificates) {
         if (giftCertificates == null) {

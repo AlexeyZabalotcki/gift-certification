@@ -5,6 +5,7 @@ import ru.clevertec.zabalotcki.dto.GiftCertificateDto;
 import java.util.List;
 
 public interface GiftCertificateService {
+
     GiftCertificateDto save(GiftCertificateDto giftCertificateDTO);
 
     GiftCertificateDto update(GiftCertificateDto giftCertificateDTO);

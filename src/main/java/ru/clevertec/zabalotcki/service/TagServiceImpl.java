@@ -5,7 +5,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.clevertec.zabalotcki.dao.TagRepositoryImpl;
 import ru.clevertec.zabalotcki.dto.TagDto;
-import ru.clevertec.zabalotcki.excepton.EntityNotFoundException;
+import ru.clevertec.zabalotcki.mapper.TagMapper;
 import ru.clevertec.zabalotcki.model.Tag;
 
 import java.util.List;
@@ -21,15 +21,15 @@ public class TagServiceImpl implements TagService {
     @Override
     public TagDto save(TagDto tagDto) {
         Tag tag = tagMapper.toEntity(tagDto);
-        tagRepository.save(tag);
-        return tagMapper.toDto(tag);
+        Tag save = tagRepository.save(tag);
+        return tagMapper.toDto(save);
     }
 
     @Override
     public TagDto update(TagDto tagDto) {
         Tag tag = tagMapper.toEntity(tagDto);
-        tagRepository.update(tag);
-        return tagMapper.toDto(tag);
+        Tag update = tagRepository.update(tag);
+        return tagMapper.toDto(update);
     }
 
     @Override
@@ -39,13 +39,13 @@ public class TagServiceImpl implements TagService {
 
     @Override
     public TagDto findById(Long id) {
-        Tag tag = tagRepository.findById(id).orElseThrow(() ->
-                new EntityNotFoundException("Tag not found with id" + id));
+        Tag tag = tagRepository.findById(id);
         return tagMapper.toDto(tag);
     }
 
     @Override
     public List<TagDto> findAll() {
-        return tagMapper.toDtoList(tagRepository.findAll());
+        List<Tag> all = tagRepository.findAll();
+        return tagMapper.toDtoList(all);
     }
 }
