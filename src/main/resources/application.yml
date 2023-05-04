@@ -1,0 +1,9 @@
+server:
+  port: 8083
+spring:
+  application:
+    name: backend
+  datasource:
+    username: gifts
+    password: password
+    url: jdbc:postgresql://localhost:5432/gifts

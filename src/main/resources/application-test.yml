@@ -1,0 +1,9 @@
+server:
+ port: 8083
+spring:
+ application:
+  name: backend
+ datasource:
+  username: ${DB_USERNAME}
+  password: ${DB_PASSWORD}
+  url: ${DB_URL}
